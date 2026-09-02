@@ -1,19 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { supabase, type Category } from "@/lib/supabase";
-
-function slugify(name: string) {
-  return (
-    name
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "") +
-    "-" +
-    Math.random().toString(36).slice(2, 7)
-  );
-}
+import { useState, useRef } from "react";
+import type { Category } from "@/lib/supabase";
 
 export function SubmitForm({ categories }: { categories: Category[] }) {
   const [name, setName] = useState("");
@@ -26,6 +14,8 @@ export function SubmitForm({ categories }: { categories: Category[] }) {
   const [onlineOnly, setOnlineOnly] = useState(false);
   const [categoryId, setCategoryId] = useState(categories[0]?.category_id ?? "");
   const [referralNote, setReferralNote] = useState("");
+  const [honeypot, setHoneypot] = useState(""); // real users never see or fill this
+  const formLoadedAt = useRef(Date.now());
   const [status, setStatus] = useState<"idle" | "submitting" | "done" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -35,44 +25,36 @@ export function SubmitForm({ categories }: { categories: Category[] }) {
     setStatus("submitting");
     setErrorMsg("");
 
-    const slug = slugify(name);
-    // Generate the ID ourselves rather than asking Postgres to hand it back
-    // via .select() — RLS treats a returned row as a read, and a stranger
-    // isn't allowed to read a pending listing (by design), so requesting
-    // the row back would fail even though the insert itself succeeds.
-    const businessId = crypto.randomUUID();
-
-    const { error: businessError } = await supabase.from("businesses").insert({
-      business_id: businessId,
-      name: name.trim(),
-      slug,
-      description: description || null,
-      short_tagline: tagline || null,
-      website_url: website || null,
-      email: email || null,
-      city: onlineOnly ? null : city || null,
-      state_region: onlineOnly ? null : stateRegion || null,
-      is_online_only: onlineOnly,
-      source_type: "self_submitted",
-      status: "pending",
-      referral_note: referralNote || null,
-    });
-
-    if (businessError) {
-      setStatus("error");
-      setErrorMsg(businessError.message);
-      return;
-    }
-
-    if (categoryId) {
-      await supabase.from("business_categories").insert({
-        business_id: businessId,
-        category_id: categoryId,
-        is_primary: true,
+    try {
+      const res = await fetch("/api/submit-business", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          description,
+          tagline,
+          website,
+          email,
+          city,
+          stateRegion,
+          isOnlineOnly: onlineOnly,
+          categoryId,
+          referralNote,
+          honeypot,
+          formLoadedAt: formLoadedAt.current,
+        }),
       });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        setStatus("error");
+        setErrorMsg(json.error ?? "Something went wrong. Please try again.");
+        return;
+      }
+      setStatus("done");
+    } catch {
+      setStatus("error");
+      setErrorMsg("Network error. Please try again.");
     }
-
-    setStatus("done");
   }
 
   if (status === "done") {
@@ -167,6 +149,21 @@ export function SubmitForm({ categories }: { categories: Category[] }) {
           className="input"
         />
       </Field>
+
+      {/* Honeypot: invisible to real users, but bots that fill every field trip it. */}
+      <div style={{ position: "absolute", left: "-9999px" }} aria-hidden="true">
+        <label>
+          Leave this field blank
+          <input
+            type="text"
+            name="company_website_confirm"
+            tabIndex={-1}
+            autoComplete="off"
+            value={honeypot}
+            onChange={(e) => setHoneypot(e.target.value)}
+          />
+        </label>
+      </div>
 
       {status === "error" && (
         <p className="text-sm text-brick">{errorMsg}</p>
