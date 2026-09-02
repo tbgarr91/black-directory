@@ -15,7 +15,6 @@ export function OwnershipBadge({ status }: { status: OwnershipStatus | null }) {
       </span>
     );
   }
-  // unverified, rejected, flagged, or null — don't accuse, just note it plainly
   return (
     <span className="inline-flex items-center gap-1.5 rounded-sm border border-ink-soft/20 bg-paper-dim px-2 py-0.5 text-xs font-medium text-ink-soft">
       Ownership not yet verified
@@ -23,6 +22,11 @@ export function OwnershipBadge({ status }: { status: OwnershipStatus | null }) {
   );
 }
 
+// Quality is shown with a single positive signal: the gold "Quality verified"
+// badge appears only once a business has enough reviews and a strong average.
+// Its ABSENCE is the signal for everything else — we don't call out low
+// ratings or "below threshold" businesses with special negative styling;
+// we just show the plain rating (or "no reviews yet") with no judgment.
 export function QualityBadge({
   status,
   averageRating,
@@ -42,25 +46,16 @@ export function QualityBadge({
       </span>
     );
   }
-  if (status === "needs_improvement") {
+
+  if (rating !== null && count > 0) {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-sm border border-brick/30 bg-brick-bg px-2 py-0.5 text-xs font-medium text-brick">
-        {rating?.toFixed(1)} avg ({count} reviews) · below quality threshold
+      <span className="text-xs text-ink-soft">
+        {rating.toFixed(1)} avg ({count} review{count === 1 ? "" : "s"})
       </span>
     );
   }
-  if (status === "standard" && rating !== null) {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-sm border border-ink-soft/30 bg-paper-dim px-2 py-0.5 text-xs font-medium text-ink-soft">
-        <StarIcon /> {rating.toFixed(1)} avg ({count} reviews)
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded-sm border border-ink-soft/20 bg-paper-dim px-2 py-0.5 text-xs font-medium text-ink-soft">
-      Not enough reviews yet{count > 0 ? ` (${count})` : ""}
-    </span>
-  );
+
+  return <span className="text-xs text-ink-soft">No reviews yet</span>;
 }
 
 function CheckIcon() {

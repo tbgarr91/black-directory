@@ -25,8 +25,11 @@ export interface BusinessSearchResult {
   name: string;
   slug: string;
   description: string | null;
+  address_line1: string | null;
+  address_line2: string | null;
   city: string | null;
   state_region: string | null;
+  postal_code: string | null;
   country: string | null;
   is_online_only: boolean;
   status: string;
@@ -35,6 +38,12 @@ export interface BusinessSearchResult {
   average_rating: string | null;
   review_count: number | null;
   categories: string[] | null;
+}
+
+export interface Favorite {
+  user_id: string;
+  business_id: string;
+  created_at: string;
 }
 
 export interface Category {

@@ -3,6 +3,8 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { OwnershipBadge, QualityBadge } from "@/components/Badges";
 import { ReviewForm } from "@/components/ReviewForm";
+import { MapsLink } from "@/components/MapsLink";
+import { FavoriteButton } from "@/components/FavoriteButton";
 import { supabase, type BusinessSearchResult, type Review } from "@/lib/supabase";
 
 interface BusinessPageProps {
@@ -40,14 +42,32 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
     ? "Online / ships nationwide"
     : [business.city, business.state_region].filter(Boolean).join(", ") || null;
 
+  // Query used to open the person's native maps app — name + city/state is
+  // the best we have since we don't collect a full street address.
+  const mapsQuery = [business.name, business.city, business.state_region].filter(Boolean).join(", ");
+
   return (
     <>
       <Header />
       <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-14">
-        <h1 className="font-display text-4xl text-ink">{business.name}</h1>
-        {location && <p className="mt-2 text-ink-soft">{location}</p>}
+        <div className="flex items-start justify-between gap-4">
+          <h1 className="font-display text-4xl text-ink">{business.name}</h1>
+          <FavoriteButton businessId={business.business_id} />
+        </div>
 
-        <div className="mt-4 flex flex-wrap gap-2">
+        {location && (
+          <p className="mt-2 text-ink-soft">
+            {business.is_online_only ? (
+              location
+            ) : (
+              <MapsLink query={mapsQuery} className="underline decoration-dotted hover:text-indigo">
+                {location}
+              </MapsLink>
+            )}
+          </p>
+        )}
+
+        <div className="mt-4 flex flex-wrap items-center gap-2">
           <OwnershipBadge status={business.ownership_status} />
           <QualityBadge
             status={business.quality_status}
@@ -93,7 +113,7 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
           <div className="mt-8 border-t border-rule pt-8">
             <h3 className="font-display text-lg text-ink">Leave a review</h3>
             <p className="mt-1 mb-4 text-sm text-ink-soft">
-              Reviews are moderated before they count toward this business's rating.
+              Reviews are moderated before they count toward this business's rating. You don't need an account to leave one.
             </p>
             <ReviewForm businessId={business.business_id} />
           </div>

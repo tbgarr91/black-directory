@@ -36,35 +36,37 @@ export function SubmitForm({ categories }: { categories: Category[] }) {
     setErrorMsg("");
 
     const slug = slugify(name);
+    // Generate the ID ourselves rather than asking Postgres to hand it back
+    // via .select() — RLS treats a returned row as a read, and a stranger
+    // isn't allowed to read a pending listing (by design), so requesting
+    // the row back would fail even though the insert itself succeeds.
+    const businessId = crypto.randomUUID();
 
-    const { data: business, error: businessError } = await supabase
-      .from("businesses")
-      .insert({
-        name: name.trim(),
-        slug,
-        description: description || null,
-        short_tagline: tagline || null,
-        website_url: website || null,
-        email: email || null,
-        city: onlineOnly ? null : city || null,
-        state_region: onlineOnly ? null : stateRegion || null,
-        is_online_only: onlineOnly,
-        source_type: "self_submitted",
-        status: "pending",
-        referral_note: referralNote || null,
-      })
-      .select("business_id")
-      .single();
+    const { error: businessError } = await supabase.from("businesses").insert({
+      business_id: businessId,
+      name: name.trim(),
+      slug,
+      description: description || null,
+      short_tagline: tagline || null,
+      website_url: website || null,
+      email: email || null,
+      city: onlineOnly ? null : city || null,
+      state_region: onlineOnly ? null : stateRegion || null,
+      is_online_only: onlineOnly,
+      source_type: "self_submitted",
+      status: "pending",
+      referral_note: referralNote || null,
+    });
 
-    if (businessError || !business) {
+    if (businessError) {
       setStatus("error");
-      setErrorMsg(businessError?.message ?? "Could not submit business.");
+      setErrorMsg(businessError.message);
       return;
     }
 
     if (categoryId) {
       await supabase.from("business_categories").insert({
-        business_id: business.business_id,
+        business_id: businessId,
         category_id: categoryId,
         is_primary: true,
       });

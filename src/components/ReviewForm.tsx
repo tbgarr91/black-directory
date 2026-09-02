@@ -12,8 +12,13 @@ export function ReviewForm({ businessId }: { businessId: string }) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setStatus("submitting");
+    // No account required to review — but if the person happens to be
+    // logged in, attribute the review to them.
+    const { data: sessionData } = await supabase.auth.getSession();
+    const reviewerId = sessionData.session?.user.id ?? null;
     const { error } = await supabase.from("reviews").insert({
       business_id: businessId,
+      reviewer_user_id: reviewerId,
       rating,
       title: title || null,
       body: body || null,
