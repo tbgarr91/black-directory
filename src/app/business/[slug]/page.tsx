@@ -40,12 +40,22 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
 
   const location = business.is_online_only
     ? "Online / ships nationwide"
-    : [business.city, business.state_region].filter(Boolean).join(", ") || null;
+    : business.address_line1 ||
+      [business.city, business.state_region].filter(Boolean).join(", ") ||
+      null;
 
-  // Query used to open the person's native maps app — name + city/state is
-  // the best we have since we don't collect a full street address.
+  // If a street address was given, only append city/state when they aren't
+  // already part of what was typed — some people type just the street,
+  // others type the whole address in one box, and duplicating city/state
+  // on top of an address that already has them confuses geocoders.
+  const addressAlreadyHasCity =
+    business.address_line1 && business.city
+      ? business.address_line1.toLowerCase().includes(business.city.toLowerCase())
+      : false;
   const mapsQuery = business.address_line1
-    ? [business.address_line1, business.city, business.state_region].filter(Boolean).join(", ")
+    ? addressAlreadyHasCity
+      ? business.address_line1
+      : [business.address_line1, business.city, business.state_region].filter(Boolean).join(", ")
     : [business.name, business.city, business.state_region].filter(Boolean).join(", ");
 
   return (

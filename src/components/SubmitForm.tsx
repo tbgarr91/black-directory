@@ -123,6 +123,9 @@ export function SubmitForm({ categories }: { categories: Category[] }) {
             placeholder="e.g. 123 Main St"
             className="input"
           />
+          <span className="mt-1 block text-xs text-ink-soft">
+            Just the street — city and state below get added automatically.
+          </span>
         </Field>
       )}
 
