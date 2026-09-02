@@ -1,4 +1,4 @@
-# The Ledger — Black-Owned Business Directory
+# For The Record — Black-Owned Business Directory
 
 A Next.js app connected to a live Supabase database: search, self-submission,
 review moderation, and an admin approval tool.

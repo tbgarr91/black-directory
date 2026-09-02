@@ -40,7 +40,7 @@ export default function LoginPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-6">
       <Link href="/" className="mb-8 font-display text-xl text-ink">
-        The Ledger
+        For The Record
       </Link>
       <h1 className="font-display text-2xl text-ink">
         {mode === "login" ? "Log in" : "Create an account"}

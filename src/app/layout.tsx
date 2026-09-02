@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "The Ledger — Find Black-Owned Businesses",
+  title: "For The Record — Verified Black-Owned Businesses",
   description:
-    "A community directory for finding Black-owned businesses — search by category, or find a Black-owned alternative to a brand you already know.",
+    "Find a Black-owned business, or a Black-owned alternative to a brand you already use. Every listing carries two independent marks: ownership verified, and quality verified — separately, for the record.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

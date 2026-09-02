@@ -51,7 +51,7 @@ export function Header() {
     <header className="border-b border-rule">
       <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-5">
         <Link href="/" className="font-display text-2xl tracking-tight text-ink">
-          The Ledger
+          For The Record
         </Link>
         <nav className="flex items-center gap-5 text-sm">
           <Link href="/search" className="text-ink-soft hover:text-ink transition-colors">
