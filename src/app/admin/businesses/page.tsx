@@ -252,7 +252,7 @@ function BusinessesContent() {
 
                   {geocodedCoords[b.business_id] && (
                     <a
-                      href={`https://www.google.com/maps?q=${geocodedCoords[b.business_id].lat},${geocodedCoords[b.business_id].lng}`}
+                      href={`https://www.google.com/maps?q=${geocodedCoords[b.business_id].lat},${geocodedCoords[b.business_id].lng}(${encodeURIComponent(b.name)})`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="mt-1 inline-block text-xs text-forest underline"
