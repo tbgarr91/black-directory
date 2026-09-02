@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+:root {
+  /* Paper / ink ledger palette */
+  --color-paper: #F5EFE3;      /* warm paper background */
+  --color-paper-dim: #ECE3D2;  /* slightly deeper paper, for panels */
+  --color-ink: #22271F;        /* near-black, warmed with green-grey */
+  --color-ink-soft: #4B5045;   /* secondary text */
+  --color-rule: #D8CBAE;       /* hairline divider color */
+
+  --color-indigo: #2B3A67;     /* primary action / links */
+  --color-indigo-dim: #1E2A4D;
+
+  --color-gold: #B5852B;       /* quality-verified accent */
+  --color-gold-bg: #F1E4C6;
+
+  --color-forest: #3F5D45;     /* ownership-verified accent */
+  --color-forest-bg: #E1E9DE;
+
+  --color-brick: #8C3B2E;      /* needs-improvement / warning */
+  --color-brick-bg: #F1DFD9;
+}
+
+@theme inline {
+  --color-paper: var(--color-paper);
+  --color-paper-dim: var(--color-paper-dim);
+  --color-ink: var(--color-ink);
+  --color-ink-soft: var(--color-ink-soft);
+  --color-rule: var(--color-rule);
+  --color-indigo: var(--color-indigo);
+  --color-indigo-dim: var(--color-indigo-dim);
+  --color-gold: var(--color-gold);
+  --color-gold-bg: var(--color-gold-bg);
+  --color-forest: var(--color-forest);
+  --color-forest-bg: var(--color-forest-bg);
+  --color-brick: var(--color-brick);
+  --color-brick-bg: var(--color-brick-bg);
+  --font-display: "Fraunces", Georgia, serif;
+  --font-sans: "Public Sans", Arial, Helvetica, sans-serif;
+}
+
+body {
+  font-family: "Public Sans", Arial, Helvetica, sans-serif;
+}
+
+h1, h2, h3, .font-display {
+  font-family: "Fraunces", Georgia, serif;
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
