@@ -59,7 +59,7 @@ export function Header() {
           </Link>
           {email && (
             <Link href="/favorites" className="text-ink-soft hover:text-ink transition-colors">
-              Saved
+              Favorites
             </Link>
           )}
           {isAdmin && (

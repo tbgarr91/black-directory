@@ -72,5 +72,20 @@ export function AdminGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return <>{children}</>;
+  return (
+    <div>
+      <div className="border-b border-rule bg-paper-dim">
+        <div className="mx-auto flex max-w-3xl items-center gap-4 px-6 py-3 text-sm">
+          <Link href="/admin" className="font-medium text-ink hover:text-indigo transition-colors">
+            Admin dashboard
+          </Link>
+          <span className="text-rule">·</span>
+          <Link href="/" className="text-ink-soft hover:text-indigo transition-colors">
+            View site
+          </Link>
+        </div>
+      </div>
+      {children}
+    </div>
+  );
 }
