@@ -6,16 +6,34 @@ import { supabase } from "@/lib/supabase";
 
 export function Header() {
   const [email, setEmail] = useState<string | null | undefined>(undefined);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
+    async function checkSession(userId: string | undefined) {
+      if (!userId) {
+        if (!cancelled) setIsAdmin(false);
+        return;
+      }
+      // admin_users has no public policies, so this returns empty for
+      // anyone who isn't an admin — that emptiness is the "not admin" signal.
+      const { data } = await supabase
+        .from("admin_users")
+        .select("user_id")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (!cancelled) setIsAdmin(Boolean(data));
+    }
+
     supabase.auth.getSession().then(({ data }) => {
       if (!cancelled) setEmail(data.session?.user.email ?? null);
+      checkSession(data.session?.user.id);
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       setEmail(session?.user.email ?? null);
+      checkSession(session?.user.id);
     });
 
     return () => {
@@ -42,6 +60,11 @@ export function Header() {
           {email && (
             <Link href="/favorites" className="text-ink-soft hover:text-ink transition-colors">
               Saved
+            </Link>
+          )}
+          {isAdmin && (
+            <Link href="/admin" className="text-indigo hover:text-indigo-dim transition-colors">
+              Admin
             </Link>
           )}
           {email === undefined ? null : email ? (
