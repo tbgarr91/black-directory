@@ -11,8 +11,6 @@ export default function FavoritesPage() {
   const [state, setState] = useState<"checking" | "signed-out" | "loaded">("checking");
   const [businesses, setBusinesses] = useState<BusinessSearchResult[]>([]);
   const [email, setEmail] = useState<string | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [pendingCount, setPendingCount] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -25,21 +23,6 @@ export default function FavoritesPage() {
         return;
       }
       if (!cancelled) setEmail(session.user.email ?? null);
-
-      const { data: adminRow } = await supabase
-        .from("admin_users")
-        .select("user_id")
-        .eq("user_id", session.user.id)
-        .maybeSingle();
-      if (!cancelled) setIsAdmin(Boolean(adminRow));
-
-      if (adminRow) {
-        const [{ count: bCount }, { count: rCount }] = await Promise.all([
-          supabase.from("businesses").select("*", { count: "exact", head: true }).eq("status", "pending"),
-          supabase.from("reviews").select("*", { count: "exact", head: true }).eq("status", "pending"),
-        ]);
-        if (!cancelled) setPendingCount((bCount ?? 0) + (rCount ?? 0));
-      }
 
       const { data: favs } = await supabase
         .from("favorites")
@@ -90,60 +73,28 @@ export default function FavoritesPage() {
 
         {state === "loaded" && (
           <>
-            <h1 className="font-display text-3xl text-ink">Welcome back</h1>
+            <h1 className="font-display text-3xl text-ink">Your saved businesses</h1>
             {email && <p className="mt-1 text-sm text-ink-soft">{email}</p>}
 
-            {isAdmin && (
-              <div className="mt-6 rounded-sm border border-indigo/30 bg-paper-dim px-5 py-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-ink">Admin tools</p>
-                    <p className="mt-0.5 text-sm text-ink-soft">
-                      {pendingCount === null
-                        ? "Checking pending items…"
-                        : pendingCount > 0
-                        ? `${pendingCount} item${pendingCount === 1 ? "" : "s"} waiting for review.`
-                        : "Nothing pending right now."}
-                    </p>
-                  </div>
-                  <Link
-                    href="/admin"
-                    className="shrink-0 rounded-sm bg-indigo px-4 py-2 text-sm font-medium text-paper hover:bg-indigo-dim transition-colors"
-                  >
-                    Open admin
-                  </Link>
-                </div>
-              </div>
-            )}
-
-            <div className="mt-10">
-              <div className="flex items-baseline justify-between">
-                <h2 className="font-display text-xl text-ink">Saved businesses</h2>
-                <Link href="/search" className="text-sm text-indigo underline">
-                  Browse more
+            {businesses.length === 0 ? (
+              <div className="mt-8 rounded-sm border border-rule px-5 py-6 text-center">
+                <p className="text-sm text-ink-soft">
+                  Nothing saved yet. Find a business you like and tap "Save" on its page.
+                </p>
+                <Link
+                  href="/search"
+                  className="mt-3 inline-block rounded-sm bg-indigo px-4 py-2 text-sm font-medium text-paper hover:bg-indigo-dim transition-colors"
+                >
+                  Start browsing
                 </Link>
               </div>
-
-              {businesses.length === 0 ? (
-                <div className="mt-4 rounded-sm border border-rule px-5 py-6 text-center">
-                  <p className="text-sm text-ink-soft">
-                    Nothing saved yet. Find a business you like and tap "Save" on its page.
-                  </p>
-                  <Link
-                    href="/search"
-                    className="mt-3 inline-block rounded-sm bg-indigo px-4 py-2 text-sm font-medium text-paper hover:bg-indigo-dim transition-colors"
-                  >
-                    Start browsing
-                  </Link>
-                </div>
-              ) : (
-                <div className="mt-4">
-                  {businesses.map((b) => (
-                    <BusinessListing key={b.business_id} business={b} />
-                  ))}
-                </div>
-              )}
-            </div>
+            ) : (
+              <div className="mt-8">
+                {businesses.map((b) => (
+                  <BusinessListing key={b.business_id} business={b} />
+                ))}
+              </div>
+            )}
           </>
         )}
       </main>
