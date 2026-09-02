@@ -11,6 +11,7 @@ export function SubmitForm({ categories }: { categories: Category[] }) {
   const [email, setEmail] = useState("");
   const [city, setCity] = useState("");
   const [stateRegion, setStateRegion] = useState("");
+  const [addressLine1, setAddressLine1] = useState("");
   const [onlineOnly, setOnlineOnly] = useState(false);
   const [categoryId, setCategoryId] = useState(categories[0]?.category_id ?? "");
   const [referralNote, setReferralNote] = useState("");
@@ -37,6 +38,7 @@ export function SubmitForm({ categories }: { categories: Category[] }) {
           email,
           city,
           stateRegion,
+          addressLine1,
           isOnlineOnly: onlineOnly,
           categoryId,
           referralNote,
@@ -112,6 +114,17 @@ export function SubmitForm({ categories }: { categories: Category[] }) {
         />
         Online only / ships nationwide
       </label>
+
+      {!onlineOnly && (
+        <Field label="Street address (optional, but makes maps directions accurate)">
+          <input
+            value={addressLine1}
+            onChange={(e) => setAddressLine1(e.target.value)}
+            placeholder="e.g. 123 Main St"
+            className="input"
+          />
+        </Field>
+      )}
 
       {!onlineOnly && (
         <div className="flex gap-3">

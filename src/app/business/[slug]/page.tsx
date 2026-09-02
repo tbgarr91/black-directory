@@ -44,7 +44,9 @@ export default async function BusinessPage({ params }: BusinessPageProps) {
 
   // Query used to open the person's native maps app — name + city/state is
   // the best we have since we don't collect a full street address.
-  const mapsQuery = [business.name, business.city, business.state_region].filter(Boolean).join(", ");
+  const mapsQuery = business.address_line1
+    ? [business.address_line1, business.city, business.state_region].filter(Boolean).join(", ")
+    : [business.name, business.city, business.state_region].filter(Boolean).join(", ");
 
   return (
     <>

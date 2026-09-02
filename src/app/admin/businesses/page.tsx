@@ -13,6 +13,7 @@ interface PendingBusiness {
   email: string | null;
   city: string | null;
   state_region: string | null;
+  address_line1: string | null;
   is_online_only: boolean;
   source_type: string;
   referral_note: string | null;
@@ -24,13 +25,15 @@ function BusinessesContent() {
   const [businesses, setBusinesses] = useState<PendingBusiness[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [addressEdits, setAddressEdits] = useState<Record<string, string>>({});
+  const [savingAddressId, setSavingAddressId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     const { data: pending } = await supabase
       .from("businesses")
       .select(
-        "business_id, name, description, short_tagline, website_url, email, city, state_region, is_online_only, source_type, referral_note, created_at"
+        "business_id, name, description, short_tagline, website_url, email, city, state_region, address_line1, is_online_only, source_type, referral_note, created_at"
       )
       .eq("status", "pending")
       .order("created_at", { ascending: true });
@@ -51,6 +54,13 @@ function BusinessesContent() {
         ownershipStatus: ownershipMap.get(b.business_id) ?? null,
       }))
     );
+    setAddressEdits((prev) => {
+      const next = { ...prev };
+      for (const b of pending ?? []) {
+        if (!(b.business_id in next)) next[b.business_id] = b.address_line1 ?? "";
+      }
+      return next;
+    });
     setLoading(false);
   }, []);
 
@@ -98,6 +108,14 @@ function BusinessesContent() {
     setBusyId(null);
   }
 
+  async function saveAddress(businessId: string) {
+    setSavingAddressId(businessId);
+    const value = addressEdits[businessId]?.trim() || null;
+    await supabase.from("businesses").update({ address_line1: value }).eq("business_id", businessId);
+    await load();
+    setSavingAddressId(null);
+  }
+
   return (
     <main className="mx-auto max-w-3xl px-6 py-14">
       <h1 className="font-display text-3xl text-ink">Pending businesses</h1>
@@ -130,6 +148,27 @@ function BusinessesContent() {
                   Ownership: {b.ownershipStatus === "verified" ? "✓ Verified" : "Not yet verified"}
                 </div>
               </dl>
+
+              {!b.is_online_only && (
+                <div className="mt-3 flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={addressEdits[b.business_id] ?? ""}
+                    onChange={(e) =>
+                      setAddressEdits((prev) => ({ ...prev, [b.business_id]: e.target.value }))
+                    }
+                    placeholder="Street address (improves map accuracy)"
+                    className="flex-1 rounded-sm border border-rule bg-paper px-3 py-1.5 text-xs focus:border-indigo focus:outline-none focus:ring-2 focus:ring-indigo/20"
+                  />
+                  <button
+                    onClick={() => saveAddress(b.business_id)}
+                    disabled={savingAddressId === b.business_id}
+                    className="shrink-0 rounded-sm border border-rule px-3 py-1.5 text-xs font-medium text-ink-soft hover:border-indigo hover:text-indigo transition-colors disabled:opacity-50"
+                  >
+                    {savingAddressId === b.business_id ? "Saving…" : "Save address"}
+                  </button>
+                </div>
+              )}
               <div className="mt-3 flex gap-2">
                 <button
                   onClick={() => verifyOwnership(b.business_id)}
