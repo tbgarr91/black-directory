@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { AdminGate } from "@/components/AdminGate";
 import { supabase } from "@/lib/supabase";
 
@@ -27,6 +27,9 @@ function BusinessesContent() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [addressEdits, setAddressEdits] = useState<Record<string, string>>({});
   const [savingAddressId, setSavingAddressId] = useState<string | null>(null);
+  const [geocodedCoords, setGeocodedCoords] = useState<Record<string, { lat: number; lng: number }>>({});
+  const [geocodeError, setGeocodeError] = useState<Record<string, string>>({});
+  const attemptedGeocodeRef = useRef<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -67,6 +70,57 @@ function BusinessesContent() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Auto-geocode any business that already has an address but no verified
+  // pin yet — so by the time you're reading a card, the "view pin" link is
+  // already there instead of waiting on a manual click. Runs one at a time
+  // with a short delay between calls (Nominatim's free tier asks for no
+  // more than ~1 request/second).
+  useEffect(() => {
+    const toGeocode = businesses.filter(
+      (b) => !b.is_online_only && b.address_line1 && !attemptedGeocodeRef.current.has(b.business_id)
+    );
+    if (toGeocode.length === 0) return;
+
+    let cancelled = false;
+
+    (async () => {
+      for (const b of toGeocode) {
+        if (cancelled) return;
+        attemptedGeocodeRef.current.add(b.business_id);
+
+        try {
+          const res = await fetch("/api/geocode-business", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              businessId: b.business_id,
+              address: b.address_line1,
+              city: b.city,
+              stateRegion: b.state_region,
+            }),
+          });
+          const json = await res.json();
+          if (cancelled) return;
+          if (json.success) {
+            setGeocodedCoords((prev) => ({ ...prev, [b.business_id]: { lat: json.lat, lng: json.lng } }));
+          } else {
+            setGeocodeError((prev) => ({ ...prev, [b.business_id]: json.error || "Couldn't locate that address." }));
+          }
+        } catch {
+          if (!cancelled) {
+            setGeocodeError((prev) => ({ ...prev, [b.business_id]: "Network error while geocoding." }));
+          }
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 1100));
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [businesses]);
 
   async function verifyOwnership(businessId: string) {
     setBusyId(businessId);
@@ -110,21 +164,32 @@ function BusinessesContent() {
 
   async function saveAddress(businessId: string) {
     setSavingAddressId(businessId);
+    setGeocodeError((prev) => ({ ...prev, [businessId]: "" }));
     const value = addressEdits[businessId]?.trim() || null;
     await supabase.from("businesses").update({ address_line1: value }).eq("business_id", businessId);
 
     if (value) {
       const business = businesses.find((b) => b.business_id === businessId);
-      await fetch("/api/geocode-business", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          businessId,
-          address: value,
-          city: business?.city,
-          stateRegion: business?.state_region,
-        }),
-      }).catch(() => {}); // best-effort — address is still saved either way
+      try {
+        const res = await fetch("/api/geocode-business", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            businessId,
+            address: value,
+            city: business?.city,
+            stateRegion: business?.state_region,
+          }),
+        });
+        const json = await res.json();
+        if (json.success) {
+          setGeocodedCoords((prev) => ({ ...prev, [businessId]: { lat: json.lat, lng: json.lng } }));
+        } else {
+          setGeocodeError((prev) => ({ ...prev, [businessId]: json.error || "Couldn't locate that address." }));
+        }
+      } catch {
+        setGeocodeError((prev) => ({ ...prev, [businessId]: "Network error while geocoding." }));
+      }
     }
 
     await load();
@@ -165,23 +230,39 @@ function BusinessesContent() {
               </dl>
 
               {!b.is_online_only && (
-                <div className="mt-3 flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={addressEdits[b.business_id] ?? ""}
-                    onChange={(e) =>
-                      setAddressEdits((prev) => ({ ...prev, [b.business_id]: e.target.value }))
-                    }
-                    placeholder="Street address (improves map accuracy)"
-                    className="flex-1 rounded-sm border border-rule bg-paper px-3 py-1.5 text-xs focus:border-indigo focus:outline-none focus:ring-2 focus:ring-indigo/20"
-                  />
-                  <button
-                    onClick={() => saveAddress(b.business_id)}
-                    disabled={savingAddressId === b.business_id}
-                    className="shrink-0 rounded-sm border border-rule px-3 py-1.5 text-xs font-medium text-ink-soft hover:border-indigo hover:text-indigo transition-colors disabled:opacity-50"
-                  >
-                    {savingAddressId === b.business_id ? "Saving…" : "Save address"}
-                  </button>
+                <div className="mt-3">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={addressEdits[b.business_id] ?? ""}
+                      onChange={(e) =>
+                        setAddressEdits((prev) => ({ ...prev, [b.business_id]: e.target.value }))
+                      }
+                      placeholder="Street address (improves map accuracy)"
+                      className="flex-1 rounded-sm border border-rule bg-paper px-3 py-1.5 text-xs focus:border-indigo focus:outline-none focus:ring-2 focus:ring-indigo/20"
+                    />
+                    <button
+                      onClick={() => saveAddress(b.business_id)}
+                      disabled={savingAddressId === b.business_id}
+                      className="shrink-0 rounded-sm border border-rule px-3 py-1.5 text-xs font-medium text-ink-soft hover:border-indigo hover:text-indigo transition-colors disabled:opacity-50"
+                    >
+                      {savingAddressId === b.business_id ? "Locating…" : "Save & locate"}
+                    </button>
+                  </div>
+
+                  {geocodedCoords[b.business_id] && (
+                    <a
+                      href={`https://www.google.com/maps?q=${geocodedCoords[b.business_id].lat},${geocodedCoords[b.business_id].lng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-1 inline-block text-xs text-forest underline"
+                    >
+                      ✓ Located — view pin on map to verify before publishing
+                    </a>
+                  )}
+                  {geocodeError[b.business_id] && (
+                    <p className="mt-1 text-xs text-brick">{geocodeError[b.business_id]}</p>
+                  )}
                 </div>
               )}
               <div className="mt-3 flex gap-2">
