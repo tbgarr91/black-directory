@@ -2,6 +2,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { SearchBar } from "@/components/SearchBar";
 import { BusinessListing } from "@/components/BusinessListing";
+import { NearMeSearch } from "@/components/NearMeSearch";
 import { supabase, type BusinessSearchResult, type ReferenceBrand } from "@/lib/supabase";
 
 interface SearchPageProps {
@@ -105,10 +106,15 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         <SearchBar initialQuery={q ?? ""} />
 
         {!hasQuery && (
-          <p className="mt-8 text-ink-soft">
-            Search for a category (like "coffee" or "skincare") or a brand
-            name (like "Sephora") to find a Black-owned alternative.
-          </p>
+          <>
+            <p className="mt-8 text-ink-soft">
+              Search for a category (like "coffee" or "skincare") or a brand
+              name (like "Sephora") to find a Black-owned alternative.
+            </p>
+            <div className="mt-6">
+              <NearMeSearch />
+            </div>
+          </>
         )}
 
         {categoryName && (

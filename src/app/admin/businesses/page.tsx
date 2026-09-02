@@ -112,6 +112,21 @@ function BusinessesContent() {
     setSavingAddressId(businessId);
     const value = addressEdits[businessId]?.trim() || null;
     await supabase.from("businesses").update({ address_line1: value }).eq("business_id", businessId);
+
+    if (value) {
+      const business = businesses.find((b) => b.business_id === businessId);
+      await fetch("/api/geocode-business", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          businessId,
+          address: value,
+          city: business?.city,
+          stateRegion: business?.state_region,
+        }),
+      }).catch(() => {}); // best-effort — address is still saved either way
+    }
+
     await load();
     setSavingAddressId(null);
   }

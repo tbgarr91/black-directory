@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
+import { geocodeAddress } from "@/lib/geocode";
 
 export const runtime = "nodejs";
 
@@ -108,6 +109,21 @@ export async function POST(req: NextRequest) {
       category_id: categoryId,
       is_primary: true,
     });
+  }
+
+  // Best-effort geocoding — a business without coordinates just won't show
+  // up in "near me" search yet; nothing else about the listing is affected,
+  // and this never fails the submission itself.
+  if (!isOnlineOnly && (addressLine1 || city)) {
+    const queryParts = [addressLine1, city, stateRegion, "USA"].filter(Boolean);
+    const coords = await geocodeAddress(queryParts.join(", "));
+    if (coords) {
+      await supabase.rpc("set_business_geo_location", {
+        p_business_id: businessId,
+        p_lat: coords.lat,
+        p_lng: coords.lng,
+      });
+    }
   }
 
   return NextResponse.json({ success: true });
